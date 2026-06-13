@@ -23,6 +23,7 @@ class Config:
     # callbacks
     early_stopping_patience: int = 10
     early_stopping_min_delta: float = 1e-3
+    checkpoint_dir: str = "checkpoints"
 
     stochastic_weight_averaging_swa_lrs: float = 1e-3
     stochastic_weight_averaging_swa_epoch_start: int = 10

@@ -47,7 +47,16 @@ def train_vae(model: AutoEncoder, config: Config):
             ModelSummary(max_depth=3),
             EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
             LearningRateMonitor(logging_interval='epoch'),
-            ModelCheckpoint(monitor='val_loss', mode='min', save_top_k=1, save_last=True),
+            ModelCheckpoint(
+                dirpath=config.checkpoint_dir,
+                filename="epoch-{epoch:02d}-val_loss-{val_loss:.4f}",
+                monitor='val_loss',
+                mode='min',
+                save_top_k=-1,
+                every_n_epochs=1,
+                save_last=True,
+                save_weights_only=True,
+            ),
             RichProgressBar(),
             StochasticWeightAveraging(swa_lrs=config.stochastic_weight_averaging_swa_lrs, swa_epoch_start=config.stochastic_weight_averaging_swa_epoch_start)
         ],
