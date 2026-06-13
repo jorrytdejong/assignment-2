@@ -7,7 +7,7 @@ class Config:
     
     # training
     learning_rate: float = 1e-3
-    batch_size: int = 32
+    batch_size: int = 1
     num_workers: int = 4
     
     max_epochs: int = 10
@@ -30,6 +30,10 @@ class Config:
     # contrastive loss
     weight_mse: float = 1.0
     weight_contrastive: float = 1.0
+
+    # dataset windowing
+    window_size: int = 2048
+    window_stride: int = 2048
     
     
     ### MODELS ###

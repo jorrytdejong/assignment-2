@@ -13,10 +13,20 @@ from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor, Mode
 
 def train_vae(model: AutoEncoder, config: Config):
 
-    train_dataset = VQVAE_DataSet(DataSetType.INTRA, 'train')
+    train_dataset = VQVAE_DataSet(
+        DataSetType.INTRA,
+        'train',
+        window_size=config.window_size,
+        window_stride=config.window_stride,
+    )
     train_dataset.load()
     
-    val_dataset = VQVAE_DataSet(DataSetType.INTRA, 'test')
+    val_dataset = VQVAE_DataSet(
+        DataSetType.INTRA,
+        'test',
+        window_size=config.window_size,
+        window_stride=config.window_stride,
+    )
     val_dataset.load()
     
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers) # type: ignore
@@ -35,9 +45,9 @@ def train_vae(model: AutoEncoder, config: Config):
         log_every_n_steps=config.log_every_n_steps,
         callbacks=[
             ModelSummary(max_depth=3),
-            EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='max', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
+            EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
             LearningRateMonitor(logging_interval='epoch'),
-            ModelCheckpoint(monitor='val_loss', mode='max', save_top_k=1, save_last=True),
+            ModelCheckpoint(monitor='val_loss', mode='min', save_top_k=1, save_last=True),
             RichProgressBar(),
             StochasticWeightAveraging(swa_lrs=config.stochastic_weight_averaging_swa_lrs, swa_epoch_start=config.stochastic_weight_averaging_swa_epoch_start)
         ],

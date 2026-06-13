@@ -40,6 +40,10 @@ class DataSet(Dataset):
         self.split = split
         
     def load(self):
+        self.mean = None
+        self.std = None
+        self.files = []
+        self.samples = []
         
         self.dataset_base = ""
         match self.dataset_type:
@@ -74,13 +78,16 @@ class DataSet(Dataset):
             
             
 class VQVAE_DataSet(DataSet):
-    def __init__(self, dataset_type: DataSetType, split: str = 'train'):
+    def __init__(self, dataset_type: DataSetType, split: str = 'train', window_size: int = 2048, window_stride: int = 2048):
         super().__init__(dataset_type, split)
         
         self.mean = None
         self.std = None
         
         self.files = []
+        self.samples: list[tuple[str, int]] = []
+        self.window_size = window_size
+        self.window_stride = window_stride
         
     def load(self):
         
@@ -108,31 +115,46 @@ class VQVAE_DataSet(DataSet):
                 matrix = f.get(datasetname)[()]
                 
                 if self.mean is None:
-                    self.mean = matrix.mean(axis=0)
+                    self.mean = matrix.mean(axis=1)
                 else:
-                    self.mean += matrix.mean(axis=0)
+                    self.mean += matrix.mean(axis=1)
                     
                 if self.std is None:
-                    self.std = matrix.std(axis=0)
+                    self.std = matrix.std(axis=1)
                 else:
-                    self.std += matrix.std(axis=0)
+                    self.std += matrix.std(axis=1)
+
+                num_timesteps = matrix.shape[1]
+                if num_timesteps <= self.window_size:
+                    self.samples.append((file_path, 0))
+                else:
+                    last_start = max(0, num_timesteps - self.window_size)
+                    for start in range(0, last_start + 1, self.window_stride):
+                        self.samples.append((file_path, start))
+                    if self.samples[-1][0] == file_path and self.samples[-1][1] != last_start:
+                        self.samples.append((file_path, last_start))
                     
         assert self.mean is not None and self.std is not None, "Mean and std must be initialized"
         self.mean /= len(all_files)
         self.std /= len(all_files)
+        std_tensor = torch.as_tensor(self.std)
+        std_tensor = torch.where(std_tensor == 0, torch.ones_like(std_tensor), std_tensor)
+        self.std = std_tensor.numpy()
         
         self.files = all_files
         
     def __len__(self) -> int:
-        return len(self.files)
+        return len(self.samples)
     
     def __getitem__(self, index) -> tuple[torch.Tensor, int]:
-        file_path = self.files[index]
+        file_path, start = self.samples[index]
         with h5py.File(file_path, 'r') as f:
             datasetname = get_dataset_name(file_path)
             matrix = f.get(datasetname)[()]
             
             y = get_task_label(file_path)
-            x = torch.from_numpy((matrix - self.mean) / self.std).float().reshape(-1, 248)
+            end = start + self.window_size
+            window = matrix[:, start:end]
+            x = torch.from_numpy((window - self.mean[:, None]) / self.std[:, None]).float().T
             
             return x, y

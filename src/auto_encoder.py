@@ -82,12 +82,12 @@ class AutoEncoder(L.LightningModule):
         self.log("train_loss_contrastive", loss_contrastive)
 
         loss = self.config.weight_mse * loss_mse + self.config.weight_contrastive * loss_contrastive
-        self.train_loss += loss
+        self.train_loss += loss.detach()
         self.num_train_steps += 1
         return loss
         
-    def val_step(self, batch, batch_idx):
-        # training_step defines the train loop.
+    def validation_step(self, batch, batch_idx):
+        # validation_step defines the validation loop.
         x, y = batch
         
         loss = 0.0
@@ -112,9 +112,12 @@ class AutoEncoder(L.LightningModule):
 
         loss = self.config.weight_mse * loss_mse + self.config.weight_contrastive * loss_contrastive
         
-        self.val_loss += loss
+        self.val_loss += loss.detach()
         self.num_val_steps += 1
         return loss
+
+    def val_step(self, batch, batch_idx):
+        return self.validation_step(batch, batch_idx)
     
     def on_train_epoch_end(self):
         assert (self.train_loss is not None) and (self.num_train_steps is not None), "train_loss and num_train_steps must be set"
