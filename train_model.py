@@ -12,6 +12,7 @@ def main() -> None:
     parser.add_argument("--model-type", choices=["cnn", "lstm", "tcn", "transformer", "cnn2d"], default="cnn")
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--num-workers", type=int, default=None)
     parser.add_argument("--window-size", type=int, default=None)
     parser.add_argument("--window-stride", type=int, default=None)
     parser.add_argument("--accelerator", choices=["cpu", "gpu", "mps", "auto"], default=None)
