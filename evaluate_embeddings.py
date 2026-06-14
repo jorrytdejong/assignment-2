@@ -11,9 +11,9 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from load_checkpoint import build_model
 from src.config import Config
 from src.data import DataSetType, TASK_TO_LABEL, VQVAE_DataSet
+from src.model_factory import build_model
 
 
 LABEL_TO_TASK = {label: task for task, label in TASK_TO_LABEL.items()}
@@ -150,6 +150,7 @@ def main() -> None:
         help="Checkpoint to evaluate. Defaults to the lowest val_loss checkpoint in checkpoint_dir.",
     )
     parser.add_argument("--checkpoint-dir", default="checkpoints")
+    parser.add_argument("--model-type", choices=["cnn", "lstm"], default="cnn")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument(
@@ -171,7 +172,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    config = Config(checkpoint_dir=args.checkpoint_dir)
+    config = Config(checkpoint_dir=args.checkpoint_dir, model_type=args.model_type)
     if args.device == "auto":
         device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     else:

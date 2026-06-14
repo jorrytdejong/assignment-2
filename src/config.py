@@ -24,6 +24,7 @@ class Config:
     early_stopping_patience: int = 10
     early_stopping_min_delta: float = 1e-3
     checkpoint_dir: str = "checkpoints"
+    log_dir: str = "logs"
 
     stochastic_weight_averaging_swa_lrs: float = 1e-3
     stochastic_weight_averaging_swa_epoch_start: int = 10
@@ -38,9 +39,17 @@ class Config:
     
     
     ### MODELS ###
+
+    model_type: Literal["cnn", "lstm"] = "cnn"
     
     ## CNN ##
     
     num_features: int = 248
     base_channels: int = 128
     latent_dim: int = 64
+
+    ## LSTM ##
+
+    lstm_hidden_dim: int = 128
+    lstm_num_layers: int = 1
+    lstm_dropout: float = 0.0

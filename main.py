@@ -1,10 +1,8 @@
-from src.data import DataSet, DataSetType
 # from src.vq_vae import VQVAE
 from src.train import train_vae
 
 from src.config import Config
-from src.auto_encoder import AutoEncoder
-from src.models.cnn import ResNet1DEncoder, ResNet1DDecoder
+from src.model_factory import build_model
 
 
 def main():
@@ -14,9 +12,7 @@ def main():
     )
 
     print('Config:', config)
-    encoder = ResNet1DEncoder(input_features=config.num_features, base_channels=config.base_channels, latent_dim=config.latent_dim)
-    decoder = ResNet1DDecoder(output_features=config.num_features, base_channels=config.base_channels, latent_dim=config.latent_dim)
-    model = AutoEncoder(encoder=encoder, decoder=decoder, config=config)
+    model = build_model(config)
 
     train_vae(model, config)
 

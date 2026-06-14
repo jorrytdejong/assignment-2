@@ -7,21 +7,7 @@ import torch
 
 from src.auto_encoder import AutoEncoder
 from src.config import Config
-from src.models.cnn import ResNet1DDecoder, ResNet1DEncoder
-
-
-def build_model(config: Config) -> AutoEncoder:
-    encoder = ResNet1DEncoder(
-        input_features=config.num_features,
-        base_channels=config.base_channels,
-        latent_dim=config.latent_dim,
-    )
-    decoder = ResNet1DDecoder(
-        output_features=config.num_features,
-        base_channels=config.base_channels,
-        latent_dim=config.latent_dim,
-    )
-    return AutoEncoder(encoder=encoder, decoder=decoder, config=config)
+from src.model_factory import build_model
 
 
 def load_latest_checkpoint(checkpoint_dir: str = "checkpoints") -> AutoEncoder:

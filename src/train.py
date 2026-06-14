@@ -36,7 +36,7 @@ def train_vae(model: AutoEncoder, config: Config):
         max_epochs=config.max_epochs,
         val_check_interval=config.val_check_interval,
         # logger=L.loggers.TensorBoardLogger("logs"),
-        logger=TensorBoardLogger(save_dir="logs"),
+        logger=TensorBoardLogger(save_dir=config.log_dir),
         enable_checkpointing=config.enable_checkpointing,
         enable_progress_bar=config.enable_progress_bar,
         enable_model_summary=config.enable_model_summary,
