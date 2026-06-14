@@ -40,7 +40,7 @@ class Config:
     
     ### MODELS ###
 
-    model_type: Literal["cnn", "lstm"] = "cnn"
+    model_type: Literal["cnn", "lstm", "tcn", "transformer", "cnn2d"] = "cnn"
     
     ## CNN ##
     
@@ -53,3 +53,23 @@ class Config:
     lstm_hidden_dim: int = 128
     lstm_num_layers: int = 1
     lstm_dropout: float = 0.0
+
+    ## TCN ##
+
+    tcn_channels: int = 128
+    tcn_num_blocks: int = 5
+    tcn_kernel_size: int = 3
+    tcn_dropout: float = 0.1
+
+    ## Transformer ##
+
+    transformer_d_model: int = 128
+    transformer_num_heads: int = 4
+    transformer_num_layers: int = 2
+    transformer_dim_feedforward: int = 256
+    transformer_dropout: float = 0.1
+
+    ## 2D CNN ##
+
+    cnn2d_base_channels: int = 32
+    cnn2d_num_blocks: int = 3

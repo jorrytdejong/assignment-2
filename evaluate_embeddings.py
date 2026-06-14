@@ -150,7 +150,7 @@ def main() -> None:
         help="Checkpoint to evaluate. Defaults to the lowest val_loss checkpoint in checkpoint_dir.",
     )
     parser.add_argument("--checkpoint-dir", default="checkpoints")
-    parser.add_argument("--model-type", choices=["cnn", "lstm"], default="cnn")
+    parser.add_argument("--model-type", choices=["cnn", "lstm", "tcn", "transformer", "cnn2d"], default="cnn")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument(
