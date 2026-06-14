@@ -32,6 +32,30 @@ def train_vae(model: AutoEncoder, config: Config):
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers) # type: ignore
     val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers) # type: ignore
 
+    callbacks = [
+        ModelSummary(max_depth=3),
+        EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
+        LearningRateMonitor(logging_interval='epoch'),
+        ModelCheckpoint(
+            dirpath=config.checkpoint_dir,
+            filename="epoch-{epoch:02d}-val_loss-{val_loss:.4f}",
+            monitor='val_loss',
+            mode='min',
+            save_top_k=-1,
+            every_n_epochs=1,
+            save_last=True,
+            save_weights_only=True,
+        ),
+        RichProgressBar(),
+    ]
+    if config.stochastic_weight_averaging_swa_epoch_start < config.max_epochs:
+        callbacks.append(
+            StochasticWeightAveraging(
+                swa_lrs=config.stochastic_weight_averaging_swa_lrs,
+                swa_epoch_start=config.stochastic_weight_averaging_swa_epoch_start,
+            )
+        )
+
     trainer = L.Trainer(
         max_epochs=config.max_epochs,
         val_check_interval=config.val_check_interval,
@@ -43,23 +67,7 @@ def train_vae(model: AutoEncoder, config: Config):
         # enable_sanity_check=True,
         accelerator=config.accelerator,
         log_every_n_steps=config.log_every_n_steps,
-        callbacks=[
-            ModelSummary(max_depth=3),
-            EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
-            LearningRateMonitor(logging_interval='epoch'),
-            ModelCheckpoint(
-                dirpath=config.checkpoint_dir,
-                filename="epoch-{epoch:02d}-val_loss-{val_loss:.4f}",
-                monitor='val_loss',
-                mode='min',
-                save_top_k=-1,
-                every_n_epochs=1,
-                save_last=True,
-                save_weights_only=True,
-            ),
-            RichProgressBar(),
-            StochasticWeightAveraging(swa_lrs=config.stochastic_weight_averaging_swa_lrs, swa_epoch_start=config.stochastic_weight_averaging_swa_epoch_start)
-        ],
+        callbacks=callbacks,
         precision=config.precision, # type: ignore
     )
     trainer.fit(model, train_dataloader, val_dataloader)

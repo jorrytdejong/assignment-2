@@ -18,7 +18,7 @@ class Config:
 
     accelerator: str = 'cpu'
     log_every_n_steps: int = 10
-    precision = "16-mixed"
+    precision: str = "16-mixed"
 
     # callbacks
     early_stopping_patience: int = 10

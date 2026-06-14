@@ -16,6 +16,7 @@ def main() -> None:
     parser.add_argument("--window-size", type=int, default=None)
     parser.add_argument("--window-stride", type=int, default=None)
     parser.add_argument("--accelerator", choices=["cpu", "gpu", "mps", "auto"], default=None)
+    parser.add_argument("--precision", default=None)
     parser.add_argument("--checkpoint-dir", default=None)
     parser.add_argument("--log-dir", default=None)
     parser.add_argument("--lstm-hidden-dim", type=int, default=None)
