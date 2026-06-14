@@ -85,7 +85,7 @@ class VQVAE_DataSet(DataSet):
         self.std = None
         
         self.files = []
-        self.samples: list[tuple[str, int]] = []
+        self.samples: list[tuple[str, str, int]] = []
         self.window_size = window_size
         self.window_stride = window_stride
         
@@ -117,7 +117,8 @@ class VQVAE_DataSet(DataSet):
                 datasetname = get_dataset_name(file_path.replace('data/', ''))
                 # print('Dataset name:', datasetname)
                 
-                matrix = f.get(datasetname)[()]
+                dataset = f.get(datasetname)
+                matrix = dataset[()]
                 
                 if self.mean is None:
                     self.mean = matrix.mean(axis=1)
@@ -131,13 +132,13 @@ class VQVAE_DataSet(DataSet):
 
                 num_timesteps = matrix.shape[1]
                 if num_timesteps <= self.window_size:
-                    self.samples.append((file_path, 0))
+                    self.samples.append((file_path, datasetname, 0))
                 else:
                     last_start = max(0, num_timesteps - self.window_size)
                     for start in range(0, last_start + 1, self.window_stride):
-                        self.samples.append((file_path, start))
-                    if self.samples[-1][0] == file_path and self.samples[-1][1] != last_start:
-                        self.samples.append((file_path, last_start))
+                        self.samples.append((file_path, datasetname, start))
+                    if self.samples[-1][0] == file_path and self.samples[-1][2] != last_start:
+                        self.samples.append((file_path, datasetname, last_start))
                     
         assert self.mean is not None and self.std is not None, "Mean and std must be initialized"
         self.mean /= len(all_files)
@@ -152,14 +153,13 @@ class VQVAE_DataSet(DataSet):
         return len(self.samples)
     
     def __getitem__(self, index) -> tuple[torch.Tensor, int]:
-        file_path, start = self.samples[index]
+        file_path, datasetname, start = self.samples[index]
         with h5py.File(file_path, 'r') as f:
-            datasetname = get_dataset_name(file_path)
-            matrix = f.get(datasetname)[()]
+            dataset = f.get(datasetname)
             
             y = get_task_label(file_path)
             end = start + self.window_size
-            window = matrix[:, start:end]
+            window = dataset[:, start:end]
             x = torch.from_numpy((window - self.mean[:, None]) / self.std[:, None]).float().T
             
             return x, y
