@@ -92,7 +92,6 @@ def extract_embeddings(
 
 def evaluate_checkpoint(
     checkpoint_path: Path,
-    config: Config,
     x_train: np.ndarray,
     y_train: np.ndarray,
     x_test: np.ndarray,
@@ -192,7 +191,7 @@ def main() -> None:
         x_test, y_test = extract_embeddings(model, test_dataset, args.batch_size, args.num_workers, device)
 
         if args.all_checkpoints:
-            row = evaluate_checkpoint(checkpoint_path, config, x_train, y_train, x_test, y_test)
+            row = evaluate_checkpoint(checkpoint_path, x_train, y_train, x_test, y_test)
             rows.append(row)
             print(f"Test accuracy: {row['test_accuracy']:.4f}")
         else:

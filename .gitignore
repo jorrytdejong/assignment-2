@@ -1,5 +1,7 @@
 logs/
 lightning_logs/
+checkpoints/
+embedding_results*.csv
 data/Cross/
 data/Intra/
 
