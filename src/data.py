@@ -103,6 +103,11 @@ class VQVAE_DataSet(DataSet):
         filenamepath = f"data/{self.dataset_base}/{self.split}"
         
         all_files = glob(os.path.join(filenamepath, "*.h5"))
+        if not all_files:
+            raise FileNotFoundError(
+                f"No .h5 files found in {filenamepath}. "
+                f"Expected files like data/{self.dataset_base}/{self.split}/*.h5."
+            )
         # print('Found', len(all_files), 'files in folder', filenamepath)
         # file_path = all_files[0]
         # print('Opening file:', file_path)
