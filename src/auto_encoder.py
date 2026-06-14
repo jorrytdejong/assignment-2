@@ -31,6 +31,14 @@ class AutoEncoder(L.LightningModule):
         self.val_loss = 0.0
         self.num_train_steps = 0
         self.num_val_steps = 0
+
+    def reset_train_losses(self):
+        self.train_loss = 0.0
+        self.num_train_steps = 0
+
+    def reset_val_losses(self):
+        self.val_loss = 0.0
+        self.num_val_steps = 0
         
     def encode(self, x):
         return self.encoder(x)
@@ -82,6 +90,7 @@ class AutoEncoder(L.LightningModule):
         self.log("train_loss_contrastive", loss_contrastive)
 
         loss = self.config.weight_mse * loss_mse + self.config.weight_contrastive * loss_contrastive
+        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.train_loss += loss.detach()
         self.num_train_steps += 1
         return loss
@@ -107,10 +116,11 @@ class AutoEncoder(L.LightningModule):
         targets = torch.where(labels == labels[permutation], 1.0, -1.0)
         loss_contrastive = self.cosine_embedding_loss(embeddings, embeddings[permutation], targets)
         
-        self.log("val_loss_mse", loss_mse)
-        self.log("val_loss_contrastive", loss_contrastive)
-
         loss = self.config.weight_mse * loss_mse + self.config.weight_contrastive * loss_contrastive
+
+        self.log("val_loss_mse", loss_mse, on_step=False, on_epoch=True)
+        self.log("val_loss_contrastive", loss_contrastive, on_step=False, on_epoch=True)
+        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         
         self.val_loss += loss.detach()
         self.num_val_steps += 1
@@ -121,11 +131,13 @@ class AutoEncoder(L.LightningModule):
     
     def on_train_epoch_end(self):
         assert (self.train_loss is not None) and (self.num_train_steps is not None), "train_loss and num_train_steps must be set"
+        if self.num_train_steps == 0:
+            return
         train_loss = self.train_loss / self.num_train_steps
-        self.log("train_loss", train_loss)
-        # self.reset_losses()
+        self.log("train_loss_manual", train_loss)
+        self.reset_train_losses()
     
-    def on_val_epoch_end(self):
+    def on_validation_epoch_end(self):
         # assert (self.train_loss is not None) and (self.num_train_steps is not None), "train_loss and num_train_steps must be set"
         assert (self.val_loss is not None) and (self.num_val_steps is not None), "val_loss and num_val_steps must be set"
         
@@ -133,9 +145,9 @@ class AutoEncoder(L.LightningModule):
         val_loss = self.val_loss / self.num_val_steps
         
         # self.log("train_loss", train_loss)
-        self.log("val_loss", val_loss)
+        self.log("val_loss_manual", val_loss)
         
-        self.reset_losses()
+        self.reset_val_losses()
         
         
 
