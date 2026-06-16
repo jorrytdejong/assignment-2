@@ -93,6 +93,7 @@ def train_classifier(model: Classifier, config: Config):
         window_size=config.window_size,
         window_stride=config.window_stride,
         preprocess_mode=config.preprocess_mode,
+        return_file_index=True,
     )
     val_dataset.load()
 
@@ -101,13 +102,13 @@ def train_classifier(model: Classifier, config: Config):
 
     callbacks = [
         ModelSummary(max_depth=3),
-        EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
+        EarlyStopping(monitor='val_file_acc', patience=config.early_stopping_patience, mode='max', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
         LearningRateMonitor(logging_interval='epoch'),
         ModelCheckpoint(
             dirpath=config.checkpoint_dir,
-            filename="epoch-{epoch:02d}-val_loss-{val_loss:.4f}-val_acc-{val_acc:.4f}",
-            monitor='val_loss',
-            mode='min',
+            filename="epoch-{epoch:02d}-val_file_acc-{val_file_acc:.4f}-val_acc-{val_acc:.4f}",
+            monitor='val_file_acc',
+            mode='max',
             save_top_k=-1,
             every_n_epochs=1,
             save_last=True,

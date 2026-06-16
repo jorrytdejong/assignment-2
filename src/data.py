@@ -234,12 +234,14 @@ class MEGBaselineWindowDataset(DataSet):
         window_size: int = 1024,
         window_stride: int = 512,
         preprocess_mode: str = "stride",
+        return_file_index: bool = False,
     ):
         super().__init__(dataset_type, split)
         self.downsample_factor = downsample_factor
         self.window_size = window_size
         self.window_stride = window_stride
         self.preprocess_mode = preprocess_mode
+        self.return_file_index = return_file_index
         self.files: list[str] = []
         self.samples: list[tuple[int, int]] = []
         self.cache: dict[int, np.ndarray] = {}
@@ -300,4 +302,6 @@ class MEGBaselineWindowDataset(DataSet):
 
         x = torch.from_numpy(window).float().T
         y = get_task_label(file_path)
+        if self.return_file_index:
+            return x, y, file_idx
         return x, y
