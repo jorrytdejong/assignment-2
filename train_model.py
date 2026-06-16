@@ -16,6 +16,8 @@ def main() -> None:
     parser.add_argument("--num-workers", type=int, default=None)
     parser.add_argument("--window-size", type=int, default=None)
     parser.add_argument("--window-stride", type=int, default=None)
+    parser.add_argument("--downsample-factor", type=int, default=None)
+    parser.add_argument("--preprocess-mode", choices=["stride", "block_mean"], default=None)
     parser.add_argument("--accelerator", choices=["cpu", "gpu", "mps", "auto"], default=None)
     parser.add_argument("--precision", default=None)
     parser.add_argument("--checkpoint-dir", default=None)

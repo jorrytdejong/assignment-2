@@ -3,6 +3,7 @@ import lightning as L
 from src.auto_encoder import AutoEncoder
 from src.classifier import Classifier
 from src.data import DataSet, DataSetType
+from src.data import MEGBaselineWindowDataset
 from src.data import VQVAE_DataSet
 from src.config import Config
 
@@ -75,19 +76,23 @@ def train_vae(model: AutoEncoder, config: Config):
 
 
 def train_classifier(model: Classifier, config: Config):
-    train_dataset = VQVAE_DataSet(
+    train_dataset = MEGBaselineWindowDataset(
         DataSetType.INTRA,
         'train',
+        downsample_factor=config.downsample_factor,
         window_size=config.window_size,
         window_stride=config.window_stride,
+        preprocess_mode=config.preprocess_mode,
     )
     train_dataset.load()
 
-    val_dataset = VQVAE_DataSet(
+    val_dataset = MEGBaselineWindowDataset(
         DataSetType.INTRA,
         'test',
+        downsample_factor=config.downsample_factor,
         window_size=config.window_size,
         window_stride=config.window_stride,
+        preprocess_mode=config.preprocess_mode,
     )
     val_dataset.load()
 

@@ -36,6 +36,8 @@ class Config:
     # dataset windowing
     window_size: int = 2048
     window_stride: int = 2048
+    downsample_factor: int = 20
+    preprocess_mode: Literal["stride", "block_mean"] = "stride"
     
     
     ### MODELS ###
