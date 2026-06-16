@@ -30,10 +30,18 @@ def _classifier_val_splits(config: Config) -> tuple[str, ...]:
     return ("test",)
 
 
+def _autoencoder_val_splits(config: Config) -> tuple[str, ...]:
+    if config.dataset_type == "cross":
+        return ("test1",)
+    return ("test",)
+
+
 def train_vae(model: AutoEncoder, config: Config):
+    dataset_type = _dataset_type_from_config(config)
+    val_splits = _autoencoder_val_splits(config)
 
     train_dataset = VQVAE_DataSet(
-        DataSetType.INTRA,
+        dataset_type,
         'train',
         window_size=config.window_size,
         window_stride=config.window_stride,
@@ -41,12 +49,13 @@ def train_vae(model: AutoEncoder, config: Config):
     train_dataset.load()
     
     val_dataset = VQVAE_DataSet(
-        DataSetType.INTRA,
-        'test',
+        dataset_type,
+        val_splits,
         window_size=config.window_size,
         window_stride=config.window_stride,
     )
     val_dataset.load()
+    val_dataset.get_mean_and_std(train_dataset)
     
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers) # type: ignore
     val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers) # type: ignore

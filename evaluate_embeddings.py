@@ -52,9 +52,25 @@ def load_model_from_checkpoint(checkpoint_path: Path, config: Config, device: to
     return model
 
 
-def build_dataset(split: str, config: Config) -> VQVAE_DataSet:
+def dataset_type_from_config(config: Config) -> DataSetType:
+    match config.dataset_type:
+        case "intra":
+            return DataSetType.INTRA
+        case "cross":
+            return DataSetType.CROSS
+        case _:
+            raise ValueError(f"Unsupported dataset_type: {config.dataset_type}")
+
+
+def default_test_splits(config: Config) -> tuple[str, ...]:
+    if config.dataset_type == "cross":
+        return ("test2", "test3")
+    return ("test",)
+
+
+def build_dataset(split: str | tuple[str, ...], config: Config) -> VQVAE_DataSet:
     dataset = VQVAE_DataSet(
-        DataSetType.INTRA,
+        dataset_type_from_config(config),
         split,
         window_size=config.window_size,
         window_stride=config.window_stride,
@@ -151,8 +167,30 @@ def main() -> None:
     )
     parser.add_argument("--checkpoint-dir", default="checkpoints")
     parser.add_argument("--model-type", choices=["cnn", "lstm", "tcn", "transformer", "cnn2d"], default="cnn")
+    parser.add_argument("--dataset-type", choices=["intra", "cross"], default="intra")
+    parser.add_argument(
+        "--test-splits",
+        default=None,
+        help="Comma-separated splits for final evaluation. Defaults to test for intra and test2,test3 for cross.",
+    )
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--window-size", type=int, default=None)
+    parser.add_argument("--window-stride", type=int, default=None)
+    parser.add_argument("--lstm-hidden-dim", type=int, default=None)
+    parser.add_argument("--lstm-num-layers", type=int, default=None)
+    parser.add_argument("--lstm-dropout", type=float, default=None)
+    parser.add_argument("--tcn-channels", type=int, default=None)
+    parser.add_argument("--tcn-num-blocks", type=int, default=None)
+    parser.add_argument("--tcn-kernel-size", type=int, default=None)
+    parser.add_argument("--tcn-dropout", type=float, default=None)
+    parser.add_argument("--transformer-d-model", type=int, default=None)
+    parser.add_argument("--transformer-num-heads", type=int, default=None)
+    parser.add_argument("--transformer-num-layers", type=int, default=None)
+    parser.add_argument("--transformer-dim-feedforward", type=int, default=None)
+    parser.add_argument("--transformer-dropout", type=float, default=None)
+    parser.add_argument("--cnn2d-base-channels", type=int, default=None)
+    parser.add_argument("--cnn2d-num-blocks", type=int, default=None)
     parser.add_argument(
         "--all-checkpoints",
         action="store_true",
@@ -172,15 +210,24 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    config = Config(checkpoint_dir=args.checkpoint_dir, model_type=args.model_type)
+    config = Config(
+        checkpoint_dir=args.checkpoint_dir,
+        model_type=args.model_type,
+        dataset_type=args.dataset_type,
+    )
+    for field_name, value in vars(args).items():
+        if value is not None and hasattr(config, field_name):
+            setattr(config, field_name, value)
     if args.device == "auto":
         device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     else:
         device = torch.device(args.device)
     print(f"Using device: {device}")
 
+    test_splits = tuple(args.test_splits.split(",")) if args.test_splits else default_test_splits(config)
     train_dataset = build_dataset("train", config)
-    test_dataset = build_dataset("test", config)
+    test_dataset = build_dataset(test_splits, config)
+    test_dataset.get_mean_and_std(train_dataset)
 
     checkpoint_paths = list_checkpoints(config.checkpoint_dir) if args.all_checkpoints else [args.checkpoint or find_best_checkpoint(config.checkpoint_dir)]
     rows = []

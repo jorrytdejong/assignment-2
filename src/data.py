@@ -139,8 +139,15 @@ class DataSet(Dataset):
             
             
 class VQVAE_DataSet(DataSet):
-    def __init__(self, dataset_type: DataSetType, split: str = 'train', window_size: int = 2048, window_stride: int = 2048):
-        super().__init__(dataset_type, split)
+    def __init__(
+        self,
+        dataset_type: DataSetType,
+        split: str | Sequence[str] = 'train',
+        window_size: int = 2048,
+        window_stride: int = 2048,
+    ):
+        super().__init__(dataset_type, split if isinstance(split, str) else ",".join(split))
+        self.splits = (split,) if isinstance(split, str) else tuple(split)
         
         self.mean = None
         self.std = None
@@ -161,13 +168,15 @@ class VQVAE_DataSet(DataSet):
             case _:
                 raise ValueError(f"Invalid dataset type: {self.dataset_type}")
                 
-        filenamepath = f"data/{self.dataset_base}/{self.split}"
-        
-        all_files = glob(os.path.join(filenamepath, "*.h5"))
+        all_files = []
+        for split in self.splits:
+            filenamepath = f"data/{self.dataset_base}/{split}"
+            all_files.extend(sorted(glob(os.path.join(filenamepath, "*.h5"))))
+
         if not all_files:
             raise FileNotFoundError(
-                f"No .h5 files found in {filenamepath}. "
-                f"Expected files like data/{self.dataset_base}/{self.split}/*.h5."
+                f"No .h5 files found for splits {self.splits} under data/{self.dataset_base}. "
+                f"Expected files like data/{self.dataset_base}/train/*.h5."
             )
         # print('Found', len(all_files), 'files in folder', filenamepath)
         # file_path = all_files[0]
@@ -209,6 +218,10 @@ class VQVAE_DataSet(DataSet):
         self.std = std_tensor.numpy()
         
         self.files = all_files
+
+    def get_mean_and_std(self, dataset: "VQVAE_DataSet") -> None:
+        self.mean = dataset.mean
+        self.std = dataset.std
         
     def __len__(self) -> int:
         return len(self.samples)
