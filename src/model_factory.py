@@ -1,5 +1,7 @@
 from src.auto_encoder import AutoEncoder
+from src.classifier import Classifier
 from src.config import Config
+from src.models.baseline_cnn1d import BaselineCNN1D
 from src.models.cnn2d import CNN2DDecoder, CNN2DEncoder
 from src.models.cnn import ResNet1DDecoder, ResNet1DEncoder
 from src.models.lstm import LSTMDecoder, LSTMEncoder
@@ -7,7 +9,7 @@ from src.models.tcn import TCNDecoder, TCNEncoder
 from src.models.transformer import TransformerDecoderModel, TransformerEncoderModel
 
 
-def build_model(config: Config) -> AutoEncoder:
+def build_autoencoder(config: Config) -> AutoEncoder:
     match config.model_type:
         case "cnn":
             encoder = ResNet1DEncoder(
@@ -85,6 +87,26 @@ def build_model(config: Config) -> AutoEncoder:
                 num_blocks=config.cnn2d_num_blocks,
             )
         case _:
-            raise ValueError(f"Unsupported model_type: {config.model_type}")
+            raise ValueError(f"Unsupported autoencoder model_type: {config.model_type}")
 
     return AutoEncoder(encoder=encoder, decoder=decoder, config=config)
+
+
+def build_classifier(config: Config) -> Classifier:
+    match config.model_type:
+        case "baseline_cnn1d":
+            model = BaselineCNN1D(
+                input_features=config.num_features,
+                num_classes=config.num_classes,
+                dropout=config.baseline_cnn_dropout,
+                channels=config.baseline_cnn_channels,
+                kernel_sizes=config.baseline_cnn_kernel_sizes,
+            )
+        case _:
+            raise ValueError(f"Unsupported classifier model_type: {config.model_type}")
+
+    return Classifier(model=model, config=config)
+
+
+def build_model(config: Config) -> AutoEncoder:
+    return build_autoencoder(config)

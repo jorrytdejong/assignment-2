@@ -40,13 +40,15 @@ class Config:
     
     ### MODELS ###
 
-    model_type: Literal["cnn", "lstm", "tcn", "transformer", "cnn2d"] = "cnn"
+    task_type: Literal["autoencoder", "classifier"] = "autoencoder"
+    model_type: Literal["cnn", "lstm", "tcn", "transformer", "cnn2d", "baseline_cnn1d"] = "cnn"
     
     ## CNN ##
     
     num_features: int = 248
     base_channels: int = 128
     latent_dim: int = 64
+    num_classes: int = 4
 
     ## LSTM ##
 
@@ -73,3 +75,9 @@ class Config:
 
     cnn2d_base_channels: int = 32
     cnn2d_num_blocks: int = 3
+
+    ## Baseline 1D CNN classifier ##
+
+    baseline_cnn_channels: tuple[int, ...] = (32, 64, 128)
+    baseline_cnn_kernel_sizes: tuple[int, ...] = (7, 5, 3)
+    baseline_cnn_dropout: float = 0.3

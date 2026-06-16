@@ -1,6 +1,7 @@
 import lightning as L
 # from src.vq_vae import VQVAE
 from src.auto_encoder import AutoEncoder
+from src.classifier import Classifier
 from src.data import DataSet, DataSetType
 from src.data import VQVAE_DataSet
 from src.config import Config
@@ -65,6 +66,65 @@ def train_vae(model: AutoEncoder, config: Config):
         enable_progress_bar=config.enable_progress_bar,
         enable_model_summary=config.enable_model_summary,
         # enable_sanity_check=True,
+        accelerator=config.accelerator,
+        log_every_n_steps=config.log_every_n_steps,
+        callbacks=callbacks,
+        precision=config.precision, # type: ignore
+    )
+    trainer.fit(model, train_dataloader, val_dataloader)
+
+
+def train_classifier(model: Classifier, config: Config):
+    train_dataset = VQVAE_DataSet(
+        DataSetType.INTRA,
+        'train',
+        window_size=config.window_size,
+        window_stride=config.window_stride,
+    )
+    train_dataset.load()
+
+    val_dataset = VQVAE_DataSet(
+        DataSetType.INTRA,
+        'test',
+        window_size=config.window_size,
+        window_stride=config.window_stride,
+    )
+    val_dataset.load()
+
+    train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers) # type: ignore
+    val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers) # type: ignore
+
+    callbacks = [
+        ModelSummary(max_depth=3),
+        EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
+        LearningRateMonitor(logging_interval='epoch'),
+        ModelCheckpoint(
+            dirpath=config.checkpoint_dir,
+            filename="epoch-{epoch:02d}-val_loss-{val_loss:.4f}-val_acc-{val_acc:.4f}",
+            monitor='val_loss',
+            mode='min',
+            save_top_k=-1,
+            every_n_epochs=1,
+            save_last=True,
+            save_weights_only=True,
+        ),
+        RichProgressBar(),
+    ]
+    if config.stochastic_weight_averaging_swa_epoch_start < config.max_epochs:
+        callbacks.append(
+            StochasticWeightAveraging(
+                swa_lrs=config.stochastic_weight_averaging_swa_lrs,
+                swa_epoch_start=config.stochastic_weight_averaging_swa_epoch_start,
+            )
+        )
+
+    trainer = L.Trainer(
+        max_epochs=config.max_epochs,
+        val_check_interval=config.val_check_interval,
+        logger=TensorBoardLogger(save_dir=config.log_dir),
+        enable_checkpointing=config.enable_checkpointing,
+        enable_progress_bar=config.enable_progress_bar,
+        enable_model_summary=config.enable_model_summary,
         accelerator=config.accelerator,
         log_every_n_steps=config.log_every_n_steps,
         callbacks=callbacks,
