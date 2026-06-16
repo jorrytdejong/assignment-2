@@ -8,6 +8,7 @@ import re
 from tqdm import tqdm
 from torch.utils.data import Dataset
 import torch
+from typing import Sequence
 
 def get_dataset_name(filenamewithdir):
     # print('Filename with directory:', filenamewithdir)
@@ -229,14 +230,15 @@ class MEGBaselineWindowDataset(DataSet):
     def __init__(
         self,
         dataset_type: DataSetType,
-        split: str = 'train',
+        split: str | Sequence[str] = 'train',
         downsample_factor: int = 20,
         window_size: int = 1024,
         window_stride: int = 512,
         preprocess_mode: str = "stride",
         return_file_index: bool = False,
     ):
-        super().__init__(dataset_type, split)
+        super().__init__(dataset_type, split if isinstance(split, str) else ",".join(split))
+        self.splits = (split,) if isinstance(split, str) else tuple(split)
         self.downsample_factor = downsample_factor
         self.window_size = window_size
         self.window_stride = window_stride
@@ -255,12 +257,15 @@ class MEGBaselineWindowDataset(DataSet):
             case _:
                 raise ValueError(f"Invalid dataset type: {self.dataset_type}")
 
-        filenamepath = f"data/{self.dataset_base}/{self.split}"
-        self.files = sorted(glob(os.path.join(filenamepath, "*.h5")))
+        self.files = []
+        for split in self.splits:
+            filenamepath = f"data/{self.dataset_base}/{split}"
+            self.files.extend(sorted(glob(os.path.join(filenamepath, "*.h5"))))
+
         if not self.files:
             raise FileNotFoundError(
-                f"No .h5 files found in {filenamepath}. "
-                f"Expected files like data/{self.dataset_base}/{self.split}/*.h5."
+                f"No .h5 files found for splits {self.splits} under data/{self.dataset_base}. "
+                f"Expected files like data/{self.dataset_base}/train/*.h5."
             )
 
         self.samples = []

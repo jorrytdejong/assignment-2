@@ -13,6 +13,23 @@ from torch.utils.data import DataLoader
 
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint, ModelSummary, RichProgressBar, StochasticWeightAveraging
 
+
+def _dataset_type_from_config(config: Config) -> DataSetType:
+    match config.dataset_type:
+        case "intra":
+            return DataSetType.INTRA
+        case "cross":
+            return DataSetType.CROSS
+        case _:
+            raise ValueError(f"Unsupported dataset_type: {config.dataset_type}")
+
+
+def _classifier_val_splits(config: Config) -> tuple[str, ...]:
+    if config.dataset_type == "cross":
+        return ("test1", "test2", "test3")
+    return ("test",)
+
+
 def train_vae(model: AutoEncoder, config: Config):
 
     train_dataset = VQVAE_DataSet(
@@ -76,8 +93,11 @@ def train_vae(model: AutoEncoder, config: Config):
 
 
 def train_classifier(model: Classifier, config: Config):
+    dataset_type = _dataset_type_from_config(config)
+    val_splits = _classifier_val_splits(config)
+
     train_dataset = MEGBaselineWindowDataset(
-        DataSetType.INTRA,
+        dataset_type,
         'train',
         downsample_factor=config.downsample_factor,
         window_size=config.window_size,
@@ -87,8 +107,8 @@ def train_classifier(model: Classifier, config: Config):
     train_dataset.load()
 
     val_dataset = MEGBaselineWindowDataset(
-        DataSetType.INTRA,
-        'test',
+        dataset_type,
+        val_splits,
         downsample_factor=config.downsample_factor,
         window_size=config.window_size,
         window_stride=config.window_stride,

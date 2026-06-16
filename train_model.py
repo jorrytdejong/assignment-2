@@ -14,6 +14,7 @@ def main() -> None:
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--num-workers", type=int, default=None)
+    parser.add_argument("--dataset-type", choices=["intra", "cross"], default=None)
     parser.add_argument("--window-size", type=int, default=None)
     parser.add_argument("--window-stride", type=int, default=None)
     parser.add_argument("--downsample-factor", type=int, default=None)

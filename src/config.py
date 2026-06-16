@@ -34,6 +34,7 @@ class Config:
     weight_contrastive: float = 1.0
 
     # dataset windowing
+    dataset_type: Literal["intra", "cross"] = "intra"
     window_size: int = 2048
     window_stride: int = 2048
     downsample_factor: int = 20
