@@ -44,7 +44,17 @@ class Config:
     ### MODELS ###
 
     task_type: Literal["autoencoder", "classifier"] = "autoencoder"
-    model_type: Literal["cnn", "lstm", "tcn", "transformer", "cnn2d", "baseline_cnn1d", "baseline_lstm", "baseline_fft_mlp"] = "cnn"
+    model_type: Literal[
+        "cnn",
+        "lstm",
+        "tcn",
+        "transformer",
+        "cnn2d",
+        "baseline_cnn1d",
+        "baseline_lstm",
+        "baseline_fft_mlp",
+        "baseline_mel_cnn1d",
+    ] = "cnn"
     
     ## CNN ##
     
@@ -104,3 +114,13 @@ class Config:
     )
     baseline_fft_hidden_dim: int = 128
     baseline_fft_dropout: float = 0.2
+
+    ## Baseline mel-spectrogram 1D CNN classifier ##
+
+    mel_n_fft: int = 256
+    mel_n_mels: int = 64
+    mel_hop_length: int = 128
+    mel_power: float = 2.0
+    mel_f_min: float = 0.0
+    mel_f_max: float = 300.0
+    mel_top_db: float = 80.0

@@ -5,6 +5,7 @@ from src.classifier import Classifier
 from src.data import DataSet, DataSetType
 from src.data import MEGFFTBandPowerDataset
 from src.data import MEGBaselineWindowDataset
+from src.data import MEGMelSpectrogramDataset
 from src.data import VQVAE_DataSet
 from src.config import Config
 
@@ -108,7 +109,13 @@ def train_vae(model: AutoEncoder, config: Config):
 def train_classifier(model: Classifier, config: Config):
     dataset_type = _dataset_type_from_config(config)
     val_splits = _classifier_val_splits(config)
-    dataset_class = MEGFFTBandPowerDataset if config.model_type == "baseline_fft_mlp" else MEGBaselineWindowDataset
+    match config.model_type:
+        case "baseline_fft_mlp":
+            dataset_class = MEGFFTBandPowerDataset
+        case "baseline_mel_cnn1d":
+            dataset_class = MEGMelSpectrogramDataset
+        case _:
+            dataset_class = MEGBaselineWindowDataset
     dataset_kwargs = {
         "downsample_factor": config.downsample_factor,
         "window_size": config.window_size,
@@ -122,6 +129,20 @@ def train_classifier(model: Classifier, config: Config):
                 "bands": config.fft_band_power_bands,
             }
         )
+    elif config.model_type == "baseline_mel_cnn1d":
+        dataset_kwargs = {
+            "window_size": config.window_size,
+            "window_stride": config.window_stride,
+            "preprocess_mode": config.preprocess_mode,
+            "sampling_rate": config.sampling_rate,
+            "n_fft": config.mel_n_fft,
+            "n_mels": config.mel_n_mels,
+            "hop_length": config.mel_hop_length,
+            "power": config.mel_power,
+            "f_min": config.mel_f_min,
+            "f_max": config.mel_f_max,
+            "top_db": config.mel_top_db,
+        }
 
     train_dataset = dataset_class(
         dataset_type,

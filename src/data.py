@@ -9,6 +9,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 import torch
 from typing import Sequence
+from torchaudio.transforms import AmplitudeToDB, MelSpectrogram
 
 def get_dataset_name(filenamewithdir):
     # print('Filename with directory:', filenamewithdir)
@@ -384,6 +385,105 @@ class MEGFFTBandPowerDataset(MEGBaselineWindowDataset):
             window = np.pad(window, ((0, 0), (0, padding)), mode="constant")
 
         x = torch.from_numpy(self._window_to_band_power(window)).float()
+        y = get_task_label(file_path)
+        if self.return_file_index:
+            return x, y, file_idx
+        return x, y
+
+
+class MEGMelSpectrogramDataset(MEGBaselineWindowDataset):
+    def __init__(
+        self,
+        dataset_type: DataSetType,
+        split: str | Sequence[str] = 'train',
+        window_size: int = 2048,
+        window_stride: int = 2048,
+        preprocess_mode: str = "stride",
+        sampling_rate: float = 2034.0,
+        n_fft: int = 256,
+        n_mels: int = 64,
+        hop_length: int = 128,
+        power: float = 2.0,
+        f_min: float = 0.0,
+        f_max: float = 300.0,
+        top_db: float = 80.0,
+        return_file_index: bool = False,
+    ):
+        super().__init__(
+            dataset_type=dataset_type,
+            split=split,
+            downsample_factor=1,
+            window_size=window_size,
+            window_stride=window_stride,
+            preprocess_mode=preprocess_mode,
+            return_file_index=return_file_index,
+        )
+        self.mel_transform = MelSpectrogram(
+            sample_rate=int(sampling_rate),
+            n_fft=n_fft,
+            n_mels=n_mels,
+            hop_length=hop_length,
+            power=power,
+            f_min=f_min,
+            f_max=f_max,
+        )
+        self.db_transform = AmplitudeToDB(stype="power", top_db=top_db)
+
+    def load(self):
+        match self.dataset_type:
+            case DataSetType.CROSS:
+                self.dataset_base = "Cross"
+            case DataSetType.INTRA:
+                self.dataset_base = "Intra"
+            case _:
+                raise ValueError(f"Invalid dataset type: {self.dataset_type}")
+
+        self.files = []
+        for split in self.splits:
+            filenamepath = f"data/{self.dataset_base}/{split}"
+            self.files.extend(sorted(glob(os.path.join(filenamepath, "*.h5"))))
+
+        if not self.files:
+            raise FileNotFoundError(
+                f"No .h5 files found for splits {self.splits} under data/{self.dataset_base}. "
+                f"Expected files like data/{self.dataset_base}/train/*.h5."
+            )
+
+        self.samples = []
+        for file_idx, file_path in enumerate(tqdm(self.files, desc='initializing mel baseline dataset')):
+            with h5py.File(file_path, 'r') as f:
+                datasetname = get_dataset_name(file_path.replace('data/', ''))
+                matrix = f.get(datasetname)[()]
+
+            for start in make_window_starts(matrix.shape[1], self.window_size, self.window_stride):
+                self.samples.append((file_idx, start))
+
+    def _get_processed_file(self, file_idx: int) -> np.ndarray:
+        if file_idx not in self.cache:
+            file_path = self.files[file_idx]
+            with h5py.File(file_path, 'r') as f:
+                datasetname = get_dataset_name(file_path.replace('data/', ''))
+                matrix = f.get(datasetname)[()]
+            self.cache[file_idx] = preprocess_meg(matrix, downsample_factor=1, mode=self.preprocess_mode)
+        return self.cache[file_idx]
+
+    def __getitem__(self, index) -> tuple[torch.Tensor, int]:
+        file_idx, start = self.samples[index]
+        file_path = self.files[file_idx]
+        matrix = self._get_processed_file(file_idx)
+
+        end = start + self.window_size
+        window = matrix[:, start:end]
+        if window.shape[1] < self.window_size:
+            padding = self.window_size - window.shape[1]
+            window = np.pad(window, ((0, 0), (0, padding)), mode="constant")
+
+        window_tensor = torch.from_numpy(window).float()
+        mel = self.mel_transform(window_tensor)
+        mel = self.db_transform(mel)
+        mel = (mel - mel.mean()) / mel.std().clamp_min(1e-6)
+        x = mel.permute(2, 0, 1).reshape(mel.shape[2], -1).float()
+
         y = get_task_label(file_path)
         if self.return_file_index:
             return x, y, file_idx

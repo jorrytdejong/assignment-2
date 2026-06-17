@@ -15,6 +15,7 @@ dependencies = [
     "tensorboard>=2.20.0",
     "tensorboardx>=2.6.5",
     "torch>=2.11.0",
+    "torchaudio>=2.11.0",
     "tqdm>=4.67.3",
     "types-tqdm>=4.67.3.20260508",
 ]

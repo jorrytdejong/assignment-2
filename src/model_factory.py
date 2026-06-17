@@ -120,6 +120,14 @@ def build_classifier(config: Config) -> Classifier:
                 num_classes=config.num_classes,
                 dropout=config.baseline_fft_dropout,
             )
+        case "baseline_mel_cnn1d":
+            model = BaselineCNN1D(
+                input_features=config.num_features * config.mel_n_mels,
+                num_classes=config.num_classes,
+                dropout=config.baseline_cnn_dropout,
+                channels=config.baseline_cnn_channels,
+                kernel_sizes=config.baseline_cnn_kernel_sizes,
+            )
         case _:
             raise ValueError(f"Unsupported classifier model_type: {config.model_type}")
 
