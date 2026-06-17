@@ -44,7 +44,7 @@ class Config:
     ### MODELS ###
 
     task_type: Literal["autoencoder", "classifier"] = "autoencoder"
-    model_type: Literal["cnn", "lstm", "tcn", "transformer", "cnn2d", "baseline_cnn1d", "baseline_lstm"] = "cnn"
+    model_type: Literal["cnn", "lstm", "tcn", "transformer", "cnn2d", "baseline_cnn1d", "baseline_lstm", "baseline_fft_mlp"] = "cnn"
     
     ## CNN ##
     
@@ -91,3 +91,16 @@ class Config:
     baseline_lstm_num_layers: int = 1
     baseline_lstm_dropout: float = 0.0
     baseline_lstm_bidirectional: bool = False
+
+    ## Baseline FFT band-power classifier ##
+
+    sampling_rate: float = 2034.0
+    fft_band_power_bands: tuple[tuple[float, float], ...] = (
+        (0.5, 4.0),
+        (4.0, 8.0),
+        (8.0, 13.0),
+        (13.0, 30.0),
+        (30.0, 50.0),
+    )
+    baseline_fft_hidden_dim: int = 128
+    baseline_fft_dropout: float = 0.2

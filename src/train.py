@@ -3,6 +3,7 @@ import lightning as L
 from src.auto_encoder import AutoEncoder
 from src.classifier import Classifier
 from src.data import DataSet, DataSetType
+from src.data import MEGFFTBandPowerDataset
 from src.data import MEGBaselineWindowDataset
 from src.data import VQVAE_DataSet
 from src.config import Config
@@ -61,10 +62,15 @@ def train_vae(model: AutoEncoder, config: Config):
     val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers) # type: ignore
 
     callbacks = [
-        ModelSummary(max_depth=3),
         EarlyStopping(monitor='val_loss', patience=config.early_stopping_patience, mode='min', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
         LearningRateMonitor(logging_interval='epoch'),
-        ModelCheckpoint(
+    ]
+    if config.enable_model_summary:
+        callbacks.append(ModelSummary(max_depth=3))
+    if config.enable_progress_bar:
+        callbacks.append(RichProgressBar())
+    if config.enable_checkpointing:
+        callbacks.append(ModelCheckpoint(
             dirpath=config.checkpoint_dir,
             filename="epoch-{epoch:02d}-val_loss-{val_loss:.4f}",
             monitor='val_loss',
@@ -73,9 +79,7 @@ def train_vae(model: AutoEncoder, config: Config):
             every_n_epochs=1,
             save_last=True,
             save_weights_only=True,
-        ),
-        RichProgressBar(),
-    ]
+        ))
     if config.stochastic_weight_averaging_swa_epoch_start < config.max_epochs:
         callbacks.append(
             StochasticWeightAveraging(
@@ -104,24 +108,32 @@ def train_vae(model: AutoEncoder, config: Config):
 def train_classifier(model: Classifier, config: Config):
     dataset_type = _dataset_type_from_config(config)
     val_splits = _classifier_val_splits(config)
+    dataset_class = MEGFFTBandPowerDataset if config.model_type == "baseline_fft_mlp" else MEGBaselineWindowDataset
+    dataset_kwargs = {
+        "downsample_factor": config.downsample_factor,
+        "window_size": config.window_size,
+        "window_stride": config.window_stride,
+        "preprocess_mode": config.preprocess_mode,
+    }
+    if config.model_type == "baseline_fft_mlp":
+        dataset_kwargs.update(
+            {
+                "sampling_rate": config.sampling_rate,
+                "bands": config.fft_band_power_bands,
+            }
+        )
 
-    train_dataset = MEGBaselineWindowDataset(
+    train_dataset = dataset_class(
         dataset_type,
         'train',
-        downsample_factor=config.downsample_factor,
-        window_size=config.window_size,
-        window_stride=config.window_stride,
-        preprocess_mode=config.preprocess_mode,
+        **dataset_kwargs,
     )
     train_dataset.load()
 
-    val_dataset = MEGBaselineWindowDataset(
+    val_dataset = dataset_class(
         dataset_type,
         val_splits,
-        downsample_factor=config.downsample_factor,
-        window_size=config.window_size,
-        window_stride=config.window_stride,
-        preprocess_mode=config.preprocess_mode,
+        **dataset_kwargs,
         return_file_index=True,
     )
     val_dataset.load()
@@ -130,10 +142,15 @@ def train_classifier(model: Classifier, config: Config):
     val_dataloader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers) # type: ignore
 
     callbacks = [
-        ModelSummary(max_depth=3),
         EarlyStopping(monitor='val_file_acc', patience=config.early_stopping_patience, mode='max', min_delta=config.early_stopping_min_delta, check_on_train_epoch_end=False),
         LearningRateMonitor(logging_interval='epoch'),
-        ModelCheckpoint(
+    ]
+    if config.enable_model_summary:
+        callbacks.append(ModelSummary(max_depth=3))
+    if config.enable_progress_bar:
+        callbacks.append(RichProgressBar())
+    if config.enable_checkpointing:
+        callbacks.append(ModelCheckpoint(
             dirpath=config.checkpoint_dir,
             filename="epoch-{epoch:02d}-val_file_acc-{val_file_acc:.4f}-val_acc-{val_acc:.4f}",
             monitor='val_file_acc',
@@ -142,9 +159,7 @@ def train_classifier(model: Classifier, config: Config):
             every_n_epochs=1,
             save_last=True,
             save_weights_only=True,
-        ),
-        RichProgressBar(),
-    ]
+        ))
     if config.stochastic_weight_averaging_swa_epoch_start < config.max_epochs:
         callbacks.append(
             StochasticWeightAveraging(

@@ -323,3 +323,68 @@ class MEGBaselineWindowDataset(DataSet):
         if self.return_file_index:
             return x, y, file_idx
         return x, y
+
+
+class MEGFFTBandPowerDataset(MEGBaselineWindowDataset):
+    def __init__(
+        self,
+        dataset_type: DataSetType,
+        split: str | Sequence[str] = 'train',
+        downsample_factor: int = 20,
+        window_size: int = 1024,
+        window_stride: int = 512,
+        preprocess_mode: str = "stride",
+        sampling_rate: float = 2034.0,
+        bands: Sequence[tuple[float, float]] = (
+            (0.5, 4.0),
+            (4.0, 8.0),
+            (8.0, 13.0),
+            (13.0, 30.0),
+            (30.0, 50.0),
+        ),
+        return_file_index: bool = False,
+    ):
+        super().__init__(
+            dataset_type=dataset_type,
+            split=split,
+            downsample_factor=downsample_factor,
+            window_size=window_size,
+            window_stride=window_stride,
+            preprocess_mode=preprocess_mode,
+            return_file_index=return_file_index,
+        )
+        self.sampling_rate = sampling_rate
+        self.bands = tuple(bands)
+
+    def _window_to_band_power(self, window: np.ndarray) -> np.ndarray:
+        effective_sampling_rate = self.sampling_rate / self.downsample_factor
+        freqs = np.fft.rfftfreq(window.shape[1], d=1.0 / effective_sampling_rate)
+        power = np.abs(np.fft.rfft(window, axis=1)) ** 2
+
+        band_features = []
+        for low, high in self.bands:
+            band_mask = (freqs >= low) & (freqs < high)
+            if not np.any(band_mask):
+                band_power = np.zeros(window.shape[0], dtype=np.float32)
+            else:
+                band_power = power[:, band_mask].mean(axis=1).astype(np.float32)
+            band_features.append(np.log1p(band_power))
+
+        return np.concatenate(band_features).astype(np.float32)
+
+    def __getitem__(self, index) -> tuple[torch.Tensor, int]:
+        file_idx, start = self.samples[index]
+        file_path = self.files[file_idx]
+        matrix = self._get_processed_file(file_idx)
+
+        end = start + self.window_size
+        window = matrix[:, start:end]
+        if window.shape[1] < self.window_size:
+            padding = self.window_size - window.shape[1]
+            window = np.pad(window, ((0, 0), (0, padding)), mode="constant")
+
+        x = torch.from_numpy(self._window_to_band_power(window)).float()
+        y = get_task_label(file_path)
+        if self.return_file_index:
+            return x, y, file_idx
+        return x, y

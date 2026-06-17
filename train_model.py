@@ -10,7 +10,7 @@ from src.train import train_classifier, train_vae
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train an autoencoder or supervised baseline model.")
     parser.add_argument("--task-type", choices=["autoencoder", "classifier"], default="autoencoder")
-    parser.add_argument("--model-type", choices=["cnn", "lstm", "tcn", "transformer", "cnn2d", "baseline_cnn1d", "baseline_lstm"], default="cnn")
+    parser.add_argument("--model-type", choices=["cnn", "lstm", "tcn", "transformer", "cnn2d", "baseline_cnn1d", "baseline_lstm", "baseline_fft_mlp"], default="cnn")
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--num-workers", type=int, default=None)
@@ -43,6 +43,9 @@ def main() -> None:
     parser.add_argument("--baseline-lstm-num-layers", type=int, default=None)
     parser.add_argument("--baseline-lstm-dropout", type=float, default=None)
     parser.add_argument("--baseline-lstm-bidirectional", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--sampling-rate", type=float, default=None)
+    parser.add_argument("--baseline-fft-hidden-dim", type=int, default=None)
+    parser.add_argument("--baseline-fft-dropout", type=float, default=None)
     args = parser.parse_args()
 
     config = Config(task_type=args.task_type, model_type=args.model_type)

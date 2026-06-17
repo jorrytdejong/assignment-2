@@ -2,6 +2,7 @@ from src.auto_encoder import AutoEncoder
 from src.classifier import Classifier
 from src.config import Config
 from src.models.baseline_cnn1d import BaselineCNN1D
+from src.models.baseline_fft_mlp import BaselineFFTMLP
 from src.models.baseline_lstm import BaselineLSTM
 from src.models.cnn2d import CNN2DDecoder, CNN2DEncoder
 from src.models.cnn import ResNet1DDecoder, ResNet1DEncoder
@@ -111,6 +112,13 @@ def build_classifier(config: Config) -> Classifier:
                 num_layers=config.baseline_lstm_num_layers,
                 dropout=config.baseline_lstm_dropout,
                 bidirectional=config.baseline_lstm_bidirectional,
+            )
+        case "baseline_fft_mlp":
+            model = BaselineFFTMLP(
+                input_dim=config.num_features * len(config.fft_band_power_bands),
+                hidden_dim=config.baseline_fft_hidden_dim,
+                num_classes=config.num_classes,
+                dropout=config.baseline_fft_dropout,
             )
         case _:
             raise ValueError(f"Unsupported classifier model_type: {config.model_type}")
